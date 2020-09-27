@@ -60,9 +60,43 @@ def tts(text):
 
 def getPinyin(text):
     try:
-        return gt().translate(text, dest="zh-cn").pronunciation.lower(), 'Google Translate'
+    # if True:
+        xp = xpinyin.Pinyin().get_pinyin(text, ' ', tone_marks='marks')
+        gtr = gt().translate(text, dest="zh-cn").pronunciation.lower()
+        if xp.strip(' ') == gtr.strip(' '):
+            return xp, 'xpinyin,Google Translate', 'good'
+        else:
+            found = []
+            sxp = xp.split(' ')
+            for x in range(len(sxp)):
+                gtrNew = gtr.replace(sxp[x], sxp[x].upper(), 1)
+                if gtrNew != gtr:
+                    found.append(x)
+                gtr = gtrNew
+            gFound = []
+            gNot = False
+            for g in gtr:
+                if g == ' ':
+                    continue
+                if not gNot and g.lower() == g:
+                    gNot = True
+                    gFound.append(g)
+                elif gNot and g.lower() == g:
+                    gFound[-1] += g
+                elif gNot and g.lower() != g:
+                    gNot = False
+            c = 0
+            for x in range(len(sxp)):
+                if x not in found:
+                    sxp[x] = gFound[c]
+                    c += 1
+            result = sxp[0]
+            for x in sxp[1:]:
+                result += " %s" % x
+            result = result.strip('   ').strip('  ')
+            return result, 'xpinyin,Google Translate', 'reconstructed'
     except:
-        return xpinyin.Pinyin().get_pinyin(text, ' '), 'xpinyin'
+        return xpinyin.Pinyin().get_pinyin(text, ' ', tone_marks='marks'), 'xpinyin', 'no internet'
 
 def getMeaning(text):
     return gt().translate(text, dest="en").text.lower(), 'Google Translate'
@@ -180,7 +214,7 @@ def editHanzi(cards, hanzi=None):
         if hanzi in cards:
             dPY = cards[hanzi][0]
         else:
-            dPY, source = getPinyin(hanzi)
+            dPY, source, note = getPinyin(hanzi)
     except:
         dPY = ''
     try:
@@ -249,6 +283,7 @@ def editCards(cards):
         elif event == 'Save & exit':
             if changes:
                 writeCards(cards)
+                changes = False
             break
         elif event.startswith('Edit card: '):#
             hanzi = event.strip('Edit card: ')
