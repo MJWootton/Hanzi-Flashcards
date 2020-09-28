@@ -148,7 +148,8 @@ def readFile(fPath, cards, overwrite=True):
     file.close()
 
 def readCards():
-    cards = {}
+    # cards = {}
+    cards = collections.OrderedDict()
     path = os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.flashcards')
     # path = os.path.join(os.getcwd(), '.flashcards')
     if os.path.exists(path):
@@ -174,23 +175,61 @@ def writeCards(cards):
         file.write("%s\t%s\t%s\n" % (hanzi, cards[hanzi][0], cards[hanzi][1]))
     file.close()
 
-def selectCard(cards, weight=None):
-    table = []
-    length = 0.0
-    for key in cards.keys():
-        table.append([key])
-        if weight is None:
-            table[-1].append(1)
-            length += float(1)
-        else:
-            raise NotImplementedError
+def readWeights(cards, user):
+    userData = False
+    cardData = False
+    weights = collections.OrderedDict()
+    fPath = os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.flashcards', '%s.profile' % user)
+    if os.path.exists(fPath):
+        file = open(fPath, 'r')
+        for line in file:
+            spline = line.strip('\n').split('\t')
+            if spline[0] == '~UserData':
+                cardData = False
+                userData = True
+            elif spline[0] == '~CardData':
+                cardData = True
+                userData = False
+            elif userData:
+                pass
+            elif cardData:
+                weights[spline[0]] = int(spline[1])
+        file.close()
+    for hanzi in cards.keys():
+        if hanzi not in weights:
+            weights[hanzi] = 1
 
-    selection = length*random.random()
+    return weights
+
+def writeWeights(user, weights):
+    if user is None or weights is None:
+        return
+    fPath = os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.flashcards', '%s.profile' % user)
+    file = open(fPath, 'w')
+    file.write('~UserData\n%s\n' % user)
+    file.write('~CardData\n')
+    for hanzi in weights.keys():
+        file.write('%s\t%d\n' % (hanzi, weights[hanzi]))
+    file.close()
+
+def selectCard(cards, weights=None):
+    table = []
+    max = 0.0
+    for hanzi in weights.keys():
+        table.append([hanzi, 1.0/float(weights[hanzi])])
+        max += table[-1][1]
+
+    selection = max*random.random()
     count = 0.0
     for t in table:
         count += t[1]
         if count > selection:
             return t[0]
+
+    # for hanzi in weights.keys():
+    #     count += weights[hanzi]
+    #     if count > selection:
+    #         return hanzi
 
     raise RuntimeError
 
@@ -262,7 +301,7 @@ def editCards(cards):
     layout = [
               [sg.Text("Existing cards:", font='Arial 24')], #size=(1000, 500)
               [sg.Column(cardList, background_color='white', size=(widest*6, 500), scrollable=True, vertical_scroll_only=True)],
-              [sg.Button('New card'), sg.Input(key='_IMPORT_', enable_events=True, visible=False), sg.FileBrowse('Import', target='_IMPORT_', file_types=(('TXT', '.txt'), ('All files', '*')))],
+              [sg.Button('New card', bind_return_key=True), sg.Input(key='_IMPORT_', enable_events=True, visible=False), sg.FileBrowse('Import', target='_IMPORT_', file_types=(('TXT', '.txt'), ('All files', '*')))],
               [sg.Button('Save & exit'), sg.Button('Discard changes')]
              ]
     editWin = sg.Window('抽认卡: ...', layout, element_justification='c', finalize=True)
@@ -309,8 +348,9 @@ def editCards(cards):
     editWin.close()
     return quit, reopen, cards
 
-def checkAnswer(cards, hanzi, pinyin, meaning):
+def checkHanzi(cards, hanzi, pinyin, meaning):
     quit = False
+    score = 0
     meaning = meaning.lower()
     checkTone = (cards[hanzi][0].lower() == pinyinNumToMark(pinyin))
     if checkTone:
@@ -336,35 +376,40 @@ def checkAnswer(cards, hanzi, pinyin, meaning):
     if checkPinyin:
         if checkTone:
             status += 'Pinyin ✓ Tone ✓'
+            score += 2
         else:
             status += 'Pinyin ✓ Tone ✗'
+            score += -1
     else:
         status += 'Pinyin ✗'
+        score += -2
     status += '\n'
     if checkMeaning:
         status += 'Meaning ✓'
+        score += 1
     else:
         status += 'Meaning ✗'
+        score += -1
 
     answer = 'Answer:\nPinyin:  %s\nMeaning:  %s' % (cards[hanzi][0], cards[hanzi][1])
 
     layout = [
               [sg.Text('%s' % hanzi, key='hanzi', text_color='black', background_color='white', font='KaiTi 60', size=(2*len(hanzi)+1,1), justification='center')],
               [sg.Text('%s' % status, font='Arial 12'), sg.VSeperator(), sg.Text('%s' % answer, font='Arial 12')],
-              [sg.Button('🕪 Read 🔊'), sg.Button('Next')]
+              [sg.Button('🕪 Read 🔊'), sg.Button('Next')]#, bind_return_key=True)]
              ]
 
-    checkAnswerWin = sg.Window('抽认卡: ...', layout, element_justification='c', finalize=True)
+    checkHanziWin = sg.Window('抽认卡: ...', layout, element_justification='c', finalize=True)
     while True:
-        event, values = checkAnswerWin.read()
+        event, values = checkHanziWin.read()
         if event in [sg.WIN_CLOSED, 'Next']:
             if event == sg.WIN_CLOSED:
                 quit = True
             break
         if event == '🕪 Read 🔊':
             tts(hanzi)
-    checkAnswerWin.close()
-    return quit
+    checkHanziWin.close()
+    return quit, score
 
 # def getStudyType():
 #     layout = [[sg.Button('汉字 ➡️ Pinyin & definition'), sg.Button('Definition ➡️ 汉字')]]
@@ -376,6 +421,7 @@ def checkAnswer(cards, hanzi, pinyin, meaning):
 #             return event
 
 def studyHanzi(cards, user):
+    weights = readWeights(cards, user)
     quit = False
     hanzi = ''
     layout = [
@@ -385,7 +431,7 @@ def studyHanzi(cards, user):
     studyHanziWin = sg.Window('抽认卡: 学习汉字 — User: %s' % user, layout, element_justification='c', finalize=True)
     while True:
         while True:
-            hanzi_new = selectCard(cards)
+            hanzi_new = selectCard(cards, weights=weights)
             if hanzi != hanzi_new:
                 hanzi = hanzi_new
                 break
@@ -398,12 +444,18 @@ def studyHanzi(cards, user):
             break
         elif event == 'Check':
             studyHanziWin.hide()
-            if checkAnswer(cards, hanzi, values[0], values[1]):
-                quit = True
+            quit, score = checkHanzi(cards, hanzi, values[0], values[1])
+            weights[hanzi] += score
+            if weights[hanzi] < 1:
+                weights[hanzi] = 1
+            # elif weight[hanzi] > 10:
+            #     weight[hanzi] = 10
+            if quit:
                 break
             studyHanziWin.un_hide()
 
     studyHanziWin.close()
+    writeWeights(user, weights)
     return quit
 
 def studyMeaning(cards, user):
@@ -425,6 +477,7 @@ def getUsers():
                 lastUser = users.pop()
             else:
                 lastUser = users[-1]
+        uFile.close()
     return users, lastUser
 
 def updateUsers(user, users):
@@ -435,6 +488,7 @@ def updateUsers(user, users):
     for u in users:
         uFile.write('%s\n' % u)
     uFile.write(user)
+    uFile.close()
 
 def mainGUI(cards):
     quit = False
