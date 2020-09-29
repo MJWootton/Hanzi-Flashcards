@@ -17,7 +17,7 @@ from googletrans import Translator as gt
 
 try:
     sound = '🕪 Read 🔊'
-    sg.popup(sound, auto_close=True, auto_close_duration=0)
+    sg.popup(sound, auto_close=True, auto_close_duration=0, line_width=0, no_titlebar=True, grab_anywhere=True)
 except:# _tkinter.TclError:
     sound = 'Read'
 
@@ -412,7 +412,7 @@ def checkHanzi(cards, hanzi, pinyin, meaning):
             if event == sg.WIN_CLOSED:
                 quit = True
             break
-        if event == '🕪 Read 🔊':
+        if event == sound:
             tts(hanzi)
     checkHanziWin.close()
     return quit, score
