@@ -15,6 +15,12 @@ import gtts
 from playsound import playsound
 from googletrans import Translator as gt
 
+try:
+    sound = '🕪 Read 🔊'
+    sg.popup(sound, auto_close=True, auto_close_duration=0)
+except _tkinter.TclError:
+    sound = 'Read'
+
 changes = False
 
 toneDict = collections.OrderedDict()
@@ -396,7 +402,7 @@ def checkHanzi(cards, hanzi, pinyin, meaning):
     layout = [
               [sg.Text('%s' % hanzi, key='hanzi', text_color='black', background_color='white', font='KaiTi 60', size=(2*len(hanzi)+1,1), justification='center')],
               [sg.Text('%s' % status, font='Arial 12'), sg.VSeperator(), sg.Text('%s' % answer, font='Arial 12')],
-              [sg.Button('🕪 Read 🔊'), sg.Button('Next')]#, bind_return_key=True)]
+              [sg.Button(sound), sg.Button('Next')]#, bind_return_key=True)]
              ]
 
     checkHanziWin = sg.Window('抽认卡: ...', layout, element_justification='c', finalize=True)
