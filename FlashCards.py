@@ -18,7 +18,7 @@ from googletrans import Translator as gt
 try:
     sound = '🕪 Read 🔊'
     sg.popup(sound, auto_close=True, auto_close_duration=0)
-except _tkinter.TclError:
+except:# _tkinter.TclError:
     sound = 'Read'
 
 changes = False
