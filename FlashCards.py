@@ -151,6 +151,10 @@ def readFile(fPath, cards, overwrite=True):
             continue
         if checkIfHanzi(spline[0]) and len(spline) >= 3:
             cards[spline[0]] = [pinyinNumToMark(spline[1]), spline[2]]
+            if len(spline) >= 4:
+                cards[spline[0]].append(spline[3])
+            else:
+                cards[spline[0]].append(None)
     file.close()
 
 def readCards():
@@ -178,7 +182,10 @@ def writeCards(cards):
 
     file = open(fPath, 'w')
     for hanzi in cards.keys():
-        file.write("%s\t%s\t%s\n" % (hanzi, cards[hanzi][0], cards[hanzi][1]))
+        note = ''
+        if cards[hanzi][2] is not None:
+            note += '\t%s' % cards[hanzi][2]
+        file.write("%s\t%s\t%s%s\n" % (hanzi, cards[hanzi][0], cards[hanzi][1], note))
     file.close()
 
 def readWeights(cards, user):
@@ -270,10 +277,18 @@ def editHanzi(cards, hanzi=None):
             warning = 'Hanzi definitions provided by %s\n— trust at your own discretion!' % source
     except:
         dMn = ''
+    if hanzi in cards:
+        if cards[hanzi][2] is not None:
+            dNt = cards[hanzi][2]
+        else:
+            dNt = ''
+    else:
+        dNt = ''
     layout = [
               [sg.Text('Hanzi:', font='Arial 14'), sg.Text('%s' % hanzi, background_color='white', text_color='black', font='Arial 14', size=(30,1))],
               [sg.Text('Pinyin:', font='Arial 14'), sg.InputText(default_text=dPY, size=(30,1))],
               [sg.Text('Meaning:', font='Arial 14'), sg.InputText(default_text=dMn, size=(30,1))],
+              [sg.Text('Notes (optional):', font='Arial 14'), sg.InputText(default_text=dNt, size=(30,1))],
               [sg.Text(warning, font='Arial 12')],
               [sg.Button('Save', bind_return_key=True), sg.Button('Cancel')]
              ]
@@ -285,7 +300,19 @@ def editHanzi(cards, hanzi=None):
                 quit = True
             break
         elif event == 'Save':
-            cards[hanzi] = [values[0], values[1]]
+            if values[2] is not None:
+                note = values[2]
+                while True:
+                    noteNew = note.replace('  ', ' ')
+                    if note == noteNew:
+                        break
+                    else:
+                        note = noteNew
+                if note == '':
+                    note = None
+            else:
+                note = None
+            cards[hanzi] = [values[0], values[1], note]
             edits = True
             changes = True
             break
@@ -354,6 +381,13 @@ def editCards(cards):
     editWin.close()
     return quit, reopen, cards
 
+def updateScore(weights, hanzi, score):
+    weights[hanzi] += score
+    if weights[hanzi] < 1:
+        weights[hanzi] = 1
+    # elif weight[hanzi] > 10:
+    #     weight[hanzi] = 10
+
 def checkHanzi(cards, hanzi, pinyin, meaning):
     quit = False
     score = 0
@@ -396,15 +430,18 @@ def checkHanzi(cards, hanzi, pinyin, meaning):
     else:
         status += 'Meaning ✗'
         score += -1
-
     answer = 'Answer:\nPinyin:  %s\nMeaning:  %s' % (cards[hanzi][0], cards[hanzi][1])
+    answerLine = [[sg.Text('%s' % answer, font='Arial 12')]]
+    if cards[hanzi][2] is not None:
+        answerLine.append([sg.Text('Note:  %s' % cards[hanzi][2], font='Arial 10')])
 
     layout = [
               [sg.Text('%s' % hanzi, key='hanzi', text_color='black', background_color='white', font='KaiTi 60', size=(2*len(hanzi)+1,1), justification='center')],
-              [sg.Text('%s' % status, font='Arial 12'), sg.VSeperator(), sg.Text('%s' % answer, font='Arial 12')],
+              [sg.Text('%s' % status, font='Arial 12'), sg.VSeperator(), sg.Column(answerLine)],
               [sg.Button(sound), sg.Button('Next')]#, bind_return_key=True)]
              ]
-
+    # if cards[hanzi][2] is not None:
+    #     layout[-2].append(sg.Button('?'))
     checkHanziWin = sg.Window('抽认卡: ...', layout, element_justification='c', finalize=True)
     while True:
         event, values = checkHanziWin.read()
@@ -412,8 +449,10 @@ def checkHanzi(cards, hanzi, pinyin, meaning):
             if event == sg.WIN_CLOSED:
                 quit = True
             break
-        if event == sound:
+        elif event == sound:
             tts(hanzi)
+        # elif event == '?':
+        #     sg.popup('%s: %s (%s)' % (hanzi, cards[hanzi][1], cards[hanzi][2]))
     checkHanziWin.close()
     return quit, score
 
@@ -451,11 +490,7 @@ def studyHanzi(cards, user):
         elif event == 'Check':
             studyHanziWin.hide()
             quit, score = checkHanzi(cards, hanzi, values[0], values[1])
-            weights[hanzi] += score
-            if weights[hanzi] < 1:
-                weights[hanzi] = 1
-            # elif weight[hanzi] > 10:
-            #     weight[hanzi] = 10
+            updateScore(weights, hanzi, score)
             if quit:
                 break
             studyHanziWin.un_hide()
@@ -464,8 +499,80 @@ def studyHanzi(cards, user):
     writeWeights(user, weights)
     return quit
 
+def checkMeaning(cards, hanzi, input):
+    quit = False
+    score = 0
+    top = [sg.Text('')]
+    if hanzi == input:
+        status = '✓'
+        score += 1
+    else:
+        status = '✗'
+        score += -1
+    if cards[hanzi][2] is not None:
+        note = sg.Text('%s' % cards[hanzi][2], font='Arial 10', size=(30,1), justification='center')
+    else:
+        note = sg.Text('', size=(30,1), font='Arial 1', justification='center')
+    layout = [
+              [sg.Text('%s' % cards[hanzi][0], text_color='black', background_color='white', font='Arial 12')],
+              [sg.Text('%s' % hanzi, key='hanzi', text_color='black', background_color='white', font='KaiTi 60', size=(2*len(hanzi)+1,1), justification='center')],
+              [sg.Text('%s' % cards[hanzi][1], font='Arial 12', size=(30,1), justification='center')],
+              [note],
+              [sg.Text('Your answer:  %s  %s' % (input, status), font='Arial 12', size=(30,1), justification='center')],
+              [sg.Button(sound), sg.Button('Next')]
+             ]
+    checkMeaningWin = sg.Window('抽认卡: ...', layout, element_justification='c', finalize=True)
+    while True:
+        event, values = checkMeaningWin.read()
+        if event in [sg.WIN_CLOSED, 'Next']:
+            if event == sg.WIN_CLOSED:
+                quit = True
+            break
+        elif event == sound:
+            tts(hanzi)
+    checkMeaningWin.close()
+    return quit, score
+
 def studyMeaning(cards, user):
-    pass
+    quit = False
+    weights = readWeights(cards, user)
+    hanzi = ''
+    qColumn = sg.Column([[sg.Text('', key='meaning', text_color='black', background_color='white', font='Arial 24', size=(5,1), justification='left')], [sg.Text('', key='note', text_color='black', background_color='white', font='Arial 12', size=(5,1), justification='left')]])
+    aColumn = sg.Column([[sg.Text('Chinese:')],[sg.InputText(font='KaiTi 40', key='hanzi', size=(5,1), do_not_clear=False)],[sg.Button('Check', bind_return_key=True), sg.Button('Back')]])
+    layout = [
+              [qColumn, sg.VSeperator(), aColumn]
+             ]
+    studyMeaningWin = sg.Window('抽认卡: 学习意思 — User: %s' % user, layout, element_justification='c', finalize=True)
+    while True:
+        while True:
+            hanzi_new = selectCard(cards, weights=weights)
+            if hanzi != hanzi_new:
+                hanzi = hanzi_new
+                break
+        studyMeaningWin['meaning'].update('%s' % cards[hanzi][1])
+        studyMeaningWin['meaning'].set_size(size=(len(cards[hanzi][1])+1,1))
+        studyMeaningWin['hanzi'].set_size(size=(2*len(hanzi)+1,1))
+        studyMeaningWin['note'].set_size(size=(2*len(cards[hanzi][1])+2,1))
+        if cards[hanzi][2] is not None:
+            studyMeaningWin['note'].update('%s' % cards[hanzi][2], background_color='white')
+        else:
+            studyMeaningWin['note'].update('', background_color=sg.theme_background_color())
+        event, values = studyMeaningWin.read()
+        if event in [sg.WIN_CLOSED, 'Back']:
+            if event in [sg.WIN_CLOSED]:
+                quit = True
+            break
+        elif event == 'Check':
+            print(values)
+            studyMeaningWin.hide()
+            quit, score = checkMeaning(cards, hanzi, values['hanzi'])
+            updateScore(weights, hanzi, score)
+            if quit:
+                break
+            studyMeaningWin.un_hide()
+    studyMeaningWin.close()
+    writeWeights(user, weights)
+    return quit
 
 def getUsers():
     users = []
@@ -495,6 +602,46 @@ def updateUsers(user, users):
         uFile.write('%s\n' % u)
     uFile.write(user)
     uFile.close()
+
+def userProfile(user, users):
+    quit = False
+    if user is None:
+        sg.popup('Please select a user profile', font='Arial 12', title='抽认卡: ...')
+        return None, quit
+    statCLength = 215
+    N = 0
+    widest = 30
+    bestCards = [[sg.Text('Best Cards', font='Arial 12')]]
+    worstCards = [[sg.Text('Worst Cards', font='Arial 12')]]
+    for hanzi in ['你好','再见','世界语','马克','王珊']:
+        line = '%s\t%d' % (hanzi, N)
+        width = math.ceil(len(line)*2.6)
+        bestCards.append([sg.Text(line, font='KaiTi 20', background_color='white', text_color='black', size=(width,1))])
+        worstCards.append([sg.Text(line, font='KaiTi 20', background_color='white', text_color='black', size=(width,1))])
+        if width > widest:
+            widest = width
+    best = sg.Column(bestCards, background_color='white', size=(widest*6, statCLength), scrollable=False, vertical_scroll_only=True)
+    worst = sg.Column(worstCards, background_color='white', size=(widest*6, statCLength), scrollable=False, vertical_scroll_only=True)
+    statsLayout = [
+                   [sg.Text('Total cards studied: %d' % N, font='Arial 12')],
+                   [sg.Text('汉语 ➡️ En: %d' % N, font='Arial 12'), sg.Text('En ➡️ 汉语: %d' % N, font='Arial 12')],
+                   [best, sg.VSeperator(), worst]
+                  ]
+    settingsLayout = [[sg.Button('Rename profile'), sg.Button('Delete profile')]]
+    layout = [
+              [sg.Text('User: %s' % user, font='Arial 24')],#, text_color='black', background_color='white')],
+              [sg.TabGroup([[sg.Tab('Statistics', statsLayout), sg.Tab('Settings', settingsLayout) ]])],
+              [sg.Button('Back')]
+             ]
+    userProfileWin = sg.Window('抽认卡 — User Profile: %s' % user, layout, element_justification='c', finalize=True)
+    while True:
+        event, values = userProfileWin.read()
+        if event in [sg.WIN_CLOSED, 'Back']:
+            if event in [sg.WIN_CLOSED]:
+                quit = True
+            break
+    userProfileWin.close()
+    return None, quit
 
 def mainGUI(cards):
     quit = False
@@ -543,8 +690,9 @@ def mainGUI(cards):
                     if studyHanzi(cards, user):
                         break
                 elif studyWhat == 'Definition ➡️ 汉字':
-                    sg.popup('Sorry, %s. I haven\'t implemeneted this feature yet' % user, custom_text=('¯\\_(ツ)_/¯'), font='Arial 12')
-                    studyMeaning(cards, user)
+                    # sg.popup('Sorry, %s. I haven\'t implemeneted this feature yet' % user, custom_text=('¯\\_(ツ)_/¯'), font='Arial 12')
+                    if studyMeaning(cards, user):
+                        break
                 mainWin.un_hide()
         elif event == 'Read':
             # mainWin.hide()
@@ -553,6 +701,14 @@ def mainGUI(cards):
             if text is not None:
                 if len(text):
                     tts(text)
+        elif event == 'Profile':
+            mainWin.hide()
+            _, quit = userProfile(user, users)
+            if quit:
+                break
+            mainWin.un_hide()
+        elif event == 'Help':
+            pass
         elif event == '_USER_':
             userInput = values['_USER_']
             if userInput == '{New user}':
