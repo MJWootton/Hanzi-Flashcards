@@ -326,7 +326,10 @@ def editCards(cards):
     cardList = []
     widest = 30
     for key in cards.keys():
-        line = '%s  %s  %s\n' % (key, cards[key][0], cards[key][1])
+        note = ''
+        if cards[key][2] is not None:
+            note += ' (%s)' % cards[key][2]
+        line = '%s  %s  %s%s\n' % (key, cards[key][0], cards[key][1], note)
         width = math.ceil(len(line)*1.3)
         cardList.append([sg.Text(line, background_color='white', text_color='black', size=(width,1), right_click_menu=['Edit',['Edit card: %s' % key, 'Delete card: %s' % key, 'Cancel']])])
         if width > widest:
@@ -640,6 +643,10 @@ def userProfile(user, users):
             if event in [sg.WIN_CLOSED]:
                 quit = True
             break
+        elif event == 'Rename profile':
+            pass
+        elif event == 'Delete profile':
+            pass
     userProfileWin.close()
     return None, quit
 
