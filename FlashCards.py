@@ -14,6 +14,8 @@ import xpinyin
 import gtts
 from playsound import playsound
 from googletrans import Translator as gt
+from tkinter import Tk
+# import pyperclip
 
 try:
     sound = '🕪 Read 🔊'
@@ -226,18 +228,24 @@ def writeWeights(user, weights):
     file.close()
 
 def selectCard(cards, weights=None):
-    table = []
-    max = 0.0
-    for hanzi in weights.keys():
-        table.append([hanzi, 1.0/float(weights[hanzi])])
-        max += table[-1][1]
+    while True:
+        table = []
+        max = 0.0
+        for hanzi in weights.keys():
+            table.append([hanzi, 1.0/float(weights[hanzi])])
+            max += table[-1][1]
 
-    selection = max*random.random()
-    count = 0.0
-    for t in table:
-        count += t[1]
-        if count > selection:
-            return t[0]
+        selection = max*random.random()
+        count = 0.0
+        for t in table:
+            count += t[1]
+            if count > selection:
+                if t[0] in cards:
+                    return t[0]
+                else:
+                    weights.pop(t[0])
+        if not len(weights.keys()):
+            break
 
     # for hanzi in weights.keys():
     #     count += weights[hanzi]
@@ -285,7 +293,7 @@ def editHanzi(cards, hanzi=None):
     else:
         dNt = ''
     layout = [
-              [sg.Text('Hanzi:', font='Arial 14'), sg.Text('%s' % hanzi, background_color='white', text_color='black', font='Arial 14', size=(30,1))],
+              [sg.Text('Hanzi:', font='Arial 14'), sg.Text('%s' % hanzi, background_color='white', text_color='black', font='KaiTi 16', size=(30,1))],
               [sg.Text('Pinyin:', font='Arial 14'), sg.InputText(default_text=dPY, size=(30,1))],
               [sg.Text('Meaning:', font='Arial 14'), sg.InputText(default_text=dMn, size=(30,1))],
               [sg.Text('Notes (optional):', font='Arial 14'), sg.InputText(default_text=dNt, size=(30,1))],
@@ -441,7 +449,7 @@ def checkHanzi(cards, hanzi, pinyin, meaning):
     layout = [
               [sg.Text('%s' % hanzi, key='hanzi', text_color='black', background_color='white', font='KaiTi 60', size=(2*len(hanzi)+1,1), justification='center')],
               [sg.Text('%s' % status, font='Arial 12'), sg.VSeperator(), sg.Column(answerLine)],
-              [sg.Button(sound), sg.Button('Next')]#, bind_return_key=True)]
+              [sg.Button(sound), sg.Button('Next', bind_return_key=True)]
              ]
     # if cards[hanzi][2] is not None:
     #     layout[-2].append(sg.Button('?'))
@@ -522,7 +530,7 @@ def checkMeaning(cards, hanzi, input):
               [sg.Text('%s' % cards[hanzi][1], font='Arial 12', size=(30,1), justification='center')],
               [note],
               [sg.Text('Your answer:  %s  %s' % (input, status), font='Arial 12', size=(30,1), justification='center')],
-              [sg.Button(sound), sg.Button('Next')]
+              [sg.Button(sound), sg.Button('Next', bind_return_key=True)]
              ]
     checkMeaningWin = sg.Window('抽认卡: ...', layout, element_justification='c', finalize=True)
     while True:
@@ -606,6 +614,41 @@ def updateUsers(user, users):
     uFile.write(user)
     uFile.close()
 
+def copyText(text):
+    r = Tk()
+    r.withdraw()
+    r.clipboard_clear()
+    r.clipboard_append(text)
+    r.update()
+    r.destroy()
+
+def pronunciationHelp(text):
+    pinyin = getPinyin(text)[0]
+    layout = [
+              [sg.Text('%s' % text, font='KaiTi 20', justification='center'), sg.Text(':  %s' % pinyin, font='Arial 18', justification='center')],
+              [sg.Button(sound), sg.Button('Copy to clipboard'), sg.Button('Back')]
+             ]
+    pronunciationHelpWin = sg.Window('抽认卡: ...', layout, element_justification='c', finalize=True)
+    read = True
+    quit = False
+    while True:
+        if read:
+            tts(text)
+            read = False
+        event, values = pronunciationHelpWin.read()
+        if event in [sg.WIN_CLOSED, 'Back']:
+            if event in [sg.WIN_CLOSED]:
+                quit = True
+            break
+        elif event == sound:
+            read = True
+        if event == 'Copy to clipboard':
+            copyText(pinyin)
+            sg.popup('Copied "%s" to clipboard' % pinyin, font='Arial 12')
+
+    pronunciationHelpWin.close()
+    return quit
+
 def userProfile(user, users):
     quit = False
     if user is None:
@@ -668,7 +711,7 @@ def mainGUI(cards):
     layout = [
               [sg.Text('汉字\n抽认卡', font='Arial 48', justification='center')],
               [sg.Text(' Mark "马克" Wootton ', text_color='black', background_color='white', font='Arial 12', justification='right')],
-              [sg.Button('Edit Cards'), sg.Button('Study'), sg.Button('Read')],
+              [sg.Button('Edit Cards'), sg.Button('Study'), sg.Button('Pronunciation')],
               [sg.Text('User:', font='Arial 12'), sg.Combo(users+['{New user}'], default_value=lastUser, key='_USER_', enable_events=True), sg.Button('Profile'), sg.Button('Help')]
              ]
     mainWin = sg.Window('抽认卡', layout, element_justification='c', finalize=True)
@@ -697,17 +740,18 @@ def mainGUI(cards):
                     if studyHanzi(cards, user):
                         break
                 elif studyWhat == 'Definition ➡️ 汉字':
-                    # sg.popup('Sorry, %s. I haven\'t implemeneted this feature yet' % user, custom_text=('¯\\_(ツ)_/¯'), font='Arial 12')
                     if studyMeaning(cards, user):
                         break
                 mainWin.un_hide()
-        elif event == 'Read':
-            # mainWin.hide()
+        elif event == 'Pronunciation':
             text = sg.popup_get_text('Enter text to read:', font='Arial 12')
-            # mainWin.un_hide()
             if text is not None:
                 if len(text):
-                    tts(text)
+                    # tts(text)
+                    mainWin.hide()
+                    if pronunciationHelp(text):
+                        break
+                    mainWin.un_hide()
         elif event == 'Profile':
             mainWin.hide()
             _, quit = userProfile(user, users)
