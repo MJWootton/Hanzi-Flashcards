@@ -177,7 +177,7 @@ def checkIfHanzi(text):
     return (0 < len(re.findall(r'[\u4e00-\u9fff]+', text)))
 
 def readFile(fPath, cards, overwrite=True):
-    file = open(fPath, 'r')
+    file = open(fPath, 'r', encoding="utf8")
     for line in file:
         line = line.strip('\ufeff').strip('\n')
         if line.startswith('//') or line.startswith('#') or not len(line):
@@ -219,7 +219,7 @@ def writeCards(cards):
         os.mkdir(fPath)
     fPath = os.path.join(fPath, 'flashcards.txt')
 
-    file = open(fPath, 'w')
+    file = open(fPath, 'w', encoding="utf8")
     for hanzi in cards.keys():
         note = ''
         if cards[hanzi][2] is not None:
@@ -234,7 +234,7 @@ def readWeights(cards, user):
     uData = {'EN->ZH' : 0, 'ZH->EN' : 0}
     fPath = os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.flashcards', '%s.profile' % user)
     if os.path.exists(fPath):
-        file = open(fPath, 'r')
+        file = open(fPath, 'r', encoding="utf8")
         for line in file:
             spline = line.strip('\n').split('\t')
             if spline[0] == '~UserData':
@@ -262,7 +262,7 @@ def writeWeights(user, weights, uData):
     if user is None or weights is None:
         return
     fPath = os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.flashcards', '%s.profile' % user)
-    file = open(fPath, 'w')
+    file = open(fPath, 'w', encoding="utf8")
     file.write('~UserData\n%s\n' % user)
     file.write('EN->ZH\t%d\nZH->EN\t%d\n' % (uData['EN->ZH'], uData['ZH->EN']))
     file.write('~CardData\n')
@@ -635,7 +635,7 @@ def getUsers():
     path = os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.flashcards')
     fPath = os.path.join(path, 'users')
     if os.path.exists(fPath):
-        uFile = open(fPath, 'r')
+        uFile = open(fPath, 'r', encoding="utf8")
         for line in uFile:
             users.append(line.strip('\n'))
             if not len(users[-1]):
@@ -652,7 +652,7 @@ def updateUsers(user, users):
     if user not in users and user is not None:
         users.append(user)
     fPath = os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.flashcards', 'users')
-    uFile = open(fPath, 'w')
+    uFile = open(fPath, 'w', encoding="utf8")
     for u in users:
         uFile.write('%s\n' % u)
     if user is not None:
