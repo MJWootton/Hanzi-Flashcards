@@ -1,6 +1,6 @@
 # *<img src='.icon/icon.png' width='45' title='Hanzi Flashcards'> Hanzi Flashcards*
 
-Version 1-0
+Version 1-0<br>
 © Mark Wootton 2020
 
 ## Dependencies
