@@ -55,6 +55,43 @@ toneDict['v'] = toneDict['ü']
 
 tones = [['a', 'āáǎà'], ['e', 'ēéěè'], ['i','īíǐì'], ['o', 'ōóǒò'], ['u', 'ūúǔù'], ['ü', 'ǖǘǚǜ']]
 
+def version():
+    return '1-0'
+
+def help():
+    title = '汉字 Flashcards'
+    subtitle = 'Version %s\n© Mark Wootton 2020\n' % version()
+    #         ################################################################################
+    hText = 'Welcome to 汉字Flashcards. You can study Chinese character\nflashcards in two modes:\n'
+    hText += '- see a Chinese character and enter its pinyin and meaning\n'
+    hText += '- see a definition and enter Chinese characters\n'
+    hText += '\n'
+    hText += 'New flash cards can be made in the “Edit Cards” menu. Click "New card"\n'
+    hText += '(or press enter) to add an entry. Right click on an existing card to edit or\n'
+    hText += 'delete it. Cards can be added en masse from a plain text file by clicking the\n'
+    hText += '"Import" button. Input files should be of type *.txt and be structured as\n'
+    hText += 'follows:\n'
+    example = '汉字一	hàn zì yī	flashcard one\n'
+    example += '汉字二	hàn zì èr	flashcard two\n'
+    example += '汉字三	hàn zì sān	flashcard three\n'
+    afterExample = 'where each column is separated by a tab.\n'
+
+    layout = [
+              [sg.Text(title, font='Arial 24')],
+              [sg.Text(subtitle, font='Arial 12')],
+              [sg.Text(hText, font='Arial 12')],
+              [sg.Text(example, font='Courier 12')],
+              [sg.Text(afterExample, font='Arial 12')],
+              [sg.Button('Back')]
+             ]
+    helpWin = sg.Window('抽认卡: Help and Description', layout)
+    while True:
+        event, values = helpWin.read()
+        if event == sg.WIN_CLOSED or 'Back':
+            break
+
+    helpWin.close()
+
 def tts(text):
     try:
         tempPath = tempfile.mkdtemp()
@@ -64,7 +101,7 @@ def tts(text):
         playsound(tempFile)
         shutil.rmtree(tempPath)
     except:
-        sg.popup('Error: Input could not be read. Possible causes:\n• Invalid input\n• No access to Google Translate API', font='Arial 12')
+        sg.popup('Error: Input could not be read. Possible causes:\n• Invalid input\n• No access to Google Translate API', title='抽认卡: Error', font='Arial 12')
 
 def getPinyin(text):
     try:
@@ -266,14 +303,14 @@ def editHanzi(cards, hanzi=None):
     quit = False
     warning = ''
     if hanzi is None:
-        hanzi = sg.popup_get_text('Enter hanzi:', font='Arial 12')
+        hanzi = sg.popup_get_text('Enter hanzi:', title='抽认卡', font='Arial 12')
         if hanzi is not None:
             if not checkIfHanzi(hanzi):
                 hanzi = None
         if hanzi is None:
             return quit, edits
         if hanzi in cards:
-            if 'No' == sg.popup('A card already exists for %s. Do you wish to edit it?' % hanzi, title='抽认卡: ...？', custom_text=('Yes', 'No'), font='Arial 12'):
+            if 'No' == sg.popup('A card already exists for %s. Do you wish to edit it?' % hanzi, title='抽认卡', custom_text=('Yes', 'No'), font='Arial 12'):
                 return quit, edits
 
     try:
@@ -306,7 +343,7 @@ def editHanzi(cards, hanzi=None):
               [sg.Text(warning, font='Arial 12')],
               [sg.Button('Save', bind_return_key=True), sg.Button('Cancel')]
              ]
-    editHanziWin = sg.Window('抽认卡: ...', layout, element_justification='r', finalize=True)
+    editHanziWin = sg.Window('抽认卡', layout, element_justification='r', finalize=True)
     while True:
         event, values = editHanziWin.read()
         if event in [sg.WIN_CLOSED, 'Cancel']:
@@ -354,7 +391,7 @@ def editCards(cards):
               [sg.Button('New card', bind_return_key=True), sg.Input(key='_IMPORT_', enable_events=True, visible=False), sg.FileBrowse('Import', target='_IMPORT_', file_types=(('TXT', '.txt'), ('All files', '*')))],
               [sg.Button('Save & exit'), sg.Button('Discard changes')]
              ]
-    editWin = sg.Window('抽认卡: ...', layout, element_justification='c', finalize=True)
+    editWin = sg.Window('抽认卡', layout, element_justification='c', finalize=True)
     while True:
         reopen = False
         event, values = editWin.read()
@@ -362,7 +399,7 @@ def editCards(cards):
             quit = (event == sg.WIN_CLOSED)
             if changes:
                 changes = False
-                if 'Yes' == sg.popup('Are you sure you want to discard your changes?', title='抽认卡: ...？', custom_text=('Yes', 'No'), font='Arial 12'):
+                if 'Yes' == sg.popup('Are you sure you want to discard your changes?', title='抽认卡', custom_text=('Yes', 'No'), font='Arial 12'):
                     cards = readCards()
                 else:
                     writeCards(cards)
@@ -381,7 +418,7 @@ def editCards(cards):
                 break
         elif event.startswith('Delete card: '):
             hanzi = event.strip('Delete card: ')
-            if 'Yes' == sg.popup('Are you sure you want to delete the card for %s' % hanzi, title='抽认卡: ...？', custom_text=('Yes', 'No'), font='Arial 12'):
+            if 'Yes' == sg.popup('Are you sure you want to delete the card for %s' % hanzi, title='抽认卡', custom_text=('Yes', 'No'), font='Arial 12'):
                 cards.pop(hanzi)
                 reopen = True
                 changes = True
@@ -391,7 +428,7 @@ def editCards(cards):
             if reopen:
                 break
         elif event == '_IMPORT_':
-            readFile(values['_IMPORT_'], cards, overwrite=('Use new' == sg.popup('How do you want to handle cards found in both existing and new lists?', title='抽认卡: ...？', custom_text=('Keep old', 'Use new'), font='Arial 12')))
+            readFile(values['_IMPORT_'], cards, overwrite=('Use new' == sg.popup('How do you want to handle cards found in both existing and new lists?', title='抽认卡', custom_text=('Keep old', 'Use new'), font='Arial 12')))
             reopen = True
             changes = True
             break
@@ -459,7 +496,7 @@ def checkHanzi(cards, hanzi, pinyin, meaning):
              ]
     # if cards[hanzi][2] is not None:
     #     layout[-2].append(sg.Button('?'))
-    checkHanziWin = sg.Window('抽认卡: ...', layout, element_justification='c', finalize=True)
+    checkHanziWin = sg.Window('抽认卡', layout, element_justification='c', finalize=True)
     while True:
         event, values = checkHanziWin.read()
         if event in [sg.WIN_CLOSED, 'Next']:
@@ -539,7 +576,7 @@ def checkMeaning(cards, hanzi, input):
               [sg.Text('Your answer:  %s  %s' % (input, status), font='Arial 12', size=(30,1), justification='center')],
               [sg.Button(sound), sg.Button('Next', bind_return_key=True)]
              ]
-    checkMeaningWin = sg.Window('抽认卡: ...', layout, element_justification='c', finalize=True)
+    checkMeaningWin = sg.Window('抽认卡', layout, element_justification='c', finalize=True)
     while True:
         event, values = checkMeaningWin.read()
         if event in [sg.WIN_CLOSED, 'Next']:
@@ -636,7 +673,7 @@ def pronunciationHelp(text):
               [sg.Text('%s' % text, font='KaiTi 20', justification='center'), sg.Text(':  %s' % pinyin, font='Arial 18', justification='center')],
               [sg.Button(sound), sg.Button('Copy to clipboard'), sg.Button('Back')]
              ]
-    pronunciationHelpWin = sg.Window('抽认卡: ...', layout, element_justification='c', finalize=True)
+    pronunciationHelpWin = sg.Window('抽认卡', layout, element_justification='c', finalize=True)
     read = True
     quit = False
     while True:
@@ -652,7 +689,7 @@ def pronunciationHelp(text):
             read = True
         if event == 'Copy to clipboard':
             copyText(pinyin)
-            sg.popup('Copied "%s" to clipboard' % pinyin, font='Arial 12')
+            sg.popup('Copied "%s" to clipboard' % pinyin, title='抽认卡', font='Arial 12')
 
     pronunciationHelpWin.close()
     return quit
@@ -667,6 +704,7 @@ def cardScoreExtema(cards, user, mode='Best', N=5):
         list = list[:N]
     elif mode == 'Worst':
         list = list[-N:]
+        list.reverse()
     else:
         raise RuntimeError
 
@@ -676,13 +714,13 @@ def userProfile(cards, user, users):
     quit = False
     userChange = user
     if user is None:
-        sg.popup('Please select a user profile', font='Arial 12', title='抽认卡: ...')
+        sg.popup('Please select a user profile', font='Arial 12', title='抽认卡')
         return userChange, quit
     N = 10
     statCLength = math.ceil(43*N/2)
     widest = 30
-    bestCards = [[sg.Text('Best Cards %d:' % N, background_color='white', text_color='black', font='Arial 12')]]
-    worstCards = [[sg.Text('Worst Cards %d:' % N, background_color='white', text_color='black', font='Arial 12')]]
+    bestCards = [[sg.Text('Best %d Cards:' % N, background_color='white', text_color='black', font='Arial 12')]]
+    worstCards = [[sg.Text('Worst %d Cards:' % N, background_color='white', text_color='black', font='Arial 12')]]
     bestList = cardScoreExtema(cards, user, mode='Best', N=N)
     worstList = cardScoreExtema(cards, user, mode='Worst', N=N)
     for card in bestList+worstList:
@@ -715,7 +753,7 @@ def userProfile(cards, user, users):
                 quit = True
             break
         elif event == 'Rename profile':
-            userChange = sg.popup_get_text('Enter new name for profile "%s":' % user, font='Arial 12')
+            userChange = sg.popup_get_text('Enter new name for profile "%s":' % user, title='抽认卡', font='Arial 12')
             if userChange not in users:
                 weights, uData = readWeights(cards, user)
                 writeWeights(userChange, weights, uData)
@@ -730,9 +768,9 @@ def userProfile(cards, user, users):
                 updateUsers(user, users)
                 userProfileWin['_USER_'].Update('User: %s' % user)
             else:
-                sg.popup('Sorry, the username "%s" already exists.' % userChange, font='Arial 12')
+                sg.popup('Sorry, the username "%s" already exists.' % userChange, title='抽认卡', font='Arial 12')
         elif event == 'Delete profile':
-            if 'Yes' == sg.popup('Are you sure you want to delete your profile, %s?' % user, title='抽认卡: ...？', custom_text=('Yes', 'No'), font='Arial 12'):
+            if 'Yes' == sg.popup('Are you sure you want to delete your profile, %s?' % user, title='抽认卡', custom_text=('Yes', 'No'), font='Arial 12'):
                 path = os.path.join(os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.flashcards'), '%s.profile' % user)
                 if os.path.exists(path):
                     os.remove(path)
@@ -784,7 +822,7 @@ def mainGUI(cards):
             mainWin.un_hide()
         elif event == 'Study':
             if user is None:
-                sg.popup('Please select a user before beginning study session', font='Arial 12', title='抽认卡: ...')
+                sg.popup('Please select a user before beginning study session', font='Arial 12', title='抽认卡')
             else:
                 mainWin.hide()
                 # studyWhat = getStudyType()
@@ -797,7 +835,7 @@ def mainGUI(cards):
                         break
                 mainWin.un_hide()
         elif event == 'Pronunciation':
-            text = sg.popup_get_text('Enter text to read:', font='Arial 12')
+            text = sg.popup_get_text('Enter text to read:', title='抽认卡', font='Arial 12')
             if text is not None:
                 if len(text):
                     # tts(text)
@@ -818,13 +856,15 @@ def mainGUI(cards):
                 break
             mainWin.un_hide()
         elif event == 'Help':
-            pass
+            mainWin.hide()
+            help()
+            mainWin.un_hide()
         elif event == '_USER_':
             userInput = values['_USER_']
             if userInput == '':
                 userInput = None
             if userInput == '{New user}':
-                userInput = sg.popup_get_text('Enter new username:', font='Arial 12')
+                userInput = sg.popup_get_text('Enter new username:', title='抽认卡', font='Arial 12')
                 if userInput is not None:
                     user = userInput
                     updateUsers(user, users)
