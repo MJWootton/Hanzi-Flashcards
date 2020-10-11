@@ -17,6 +17,5 @@
 胡萝卜	hú luó bo	carrot
 青椒	qīng jiāo	green pepper
 西兰花	xī lán huā	broccoli
-你好	nǐ hǎo	hello
-再见	zài jiàn	Good-bye
-气温儿童与	qwerty	QWERTY
+素菜	sù cài	vegetable
+水果	shuǐ guǒ	fruit
