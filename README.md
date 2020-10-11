@@ -29,7 +29,7 @@ New flash cards can be made in the “Edit Cards” menu. Click “New card” (
 汉字三	hàn zì sān	flashcard three
 ```
 
-where each column is separated by a tab.
+where each column is separated by a tab. Additionally, hints can be placed in an optional fourth column.
 
 
 
