@@ -14,6 +14,8 @@ Version 1-0<br>
   * [gTTS](https://pypi.org/project/gTTS)
   * [googletrans](https://pypi.org/project/googletrans)
 
+Additionally, a Chinese language input method (normally available as part of most operating systems) must be enabled to use the program. Tones can be marked on pinyin input using either diacritics or the [numerical system](https://resources.allsetlearning.com/pronwiki/images/8/85/4-Tones_standard_cropped.png).
+
 ## Usage
 
 You can study Chinese character flashcards in two modes:
