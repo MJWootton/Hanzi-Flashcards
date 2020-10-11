@@ -194,6 +194,7 @@ def readWeights(cards, user):
     userData = False
     cardData = False
     weights = collections.OrderedDict()
+    uData = {'EN->ZH' : 0, 'ZH->EN' : 0}
     fPath = os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.flashcards', '%s.profile' % user)
     if os.path.exists(fPath):
         file = open(fPath, 'r')
@@ -206,7 +207,11 @@ def readWeights(cards, user):
                 cardData = True
                 userData = False
             elif userData:
-                pass
+                if spline[0] in uData.keys():
+                    try:
+                        uData[spline[0]] = int(spline[1])
+                    except IndexError:
+                        pass
             elif cardData:
                 weights[spline[0]] = int(spline[1])
         file.close()
@@ -214,14 +219,15 @@ def readWeights(cards, user):
         if hanzi not in weights:
             weights[hanzi] = 1
 
-    return weights
+    return weights, uData
 
-def writeWeights(user, weights):
+def writeWeights(user, weights, uData):
     if user is None or weights is None:
         return
     fPath = os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.flashcards', '%s.profile' % user)
     file = open(fPath, 'w')
     file.write('~UserData\n%s\n' % user)
+    file.write('EN->ZH\t%d\nZH->EN\t%d\n' % (uData['EN->ZH'], uData['ZH->EN']))
     file.write('~CardData\n')
     for hanzi in weights.keys():
         file.write('%s\t%d\n' % (hanzi, weights[hanzi]))
@@ -477,7 +483,7 @@ def checkHanzi(cards, hanzi, pinyin, meaning):
 #             return event
 
 def studyHanzi(cards, user):
-    weights = readWeights(cards, user)
+    weights, uData = readWeights(cards, user)
     quit = False
     hanzi = ''
     layout = [
@@ -499,6 +505,7 @@ def studyHanzi(cards, user):
                 quit = True
             break
         elif event == 'Check':
+            uData['ZH->EN'] += 1
             studyHanziWin.hide()
             quit, score = checkHanzi(cards, hanzi, values[0], values[1])
             updateScore(weights, hanzi, score)
@@ -507,7 +514,7 @@ def studyHanzi(cards, user):
             studyHanziWin.un_hide()
 
     studyHanziWin.close()
-    writeWeights(user, weights)
+    writeWeights(user, weights, uData)
     return quit
 
 def checkMeaning(cards, hanzi, input):
@@ -546,7 +553,7 @@ def checkMeaning(cards, hanzi, input):
 
 def studyMeaning(cards, user):
     quit = False
-    weights = readWeights(cards, user)
+    weights, uData = readWeights(cards, user)
     hanzi = ''
     qColumn = sg.Column([[sg.Text('', key='meaning', text_color='black', background_color='white', font='Arial 24', size=(5,1), justification='left')], [sg.Text('', key='note', text_color='black', background_color='white', font='Arial 12', size=(5,1), justification='left')]])
     aColumn = sg.Column([[sg.Text('Chinese:')],[sg.InputText(font='KaiTi 40', key='hanzi', size=(5,1), do_not_clear=False)],[sg.Button('Check', bind_return_key=True), sg.Button('Back')]])
@@ -574,7 +581,7 @@ def studyMeaning(cards, user):
                 quit = True
             break
         elif event == 'Check':
-            print(values)
+            uData['EN->ZH'] += 1
             studyMeaningWin.hide()
             quit, score = checkMeaning(cards, hanzi, values['hanzi'])
             updateScore(weights, hanzi, score)
@@ -582,7 +589,7 @@ def studyMeaning(cards, user):
                 break
             studyMeaningWin.un_hide()
     studyMeaningWin.close()
-    writeWeights(user, weights)
+    writeWeights(user, weights, uData)
     return quit
 
 def getUsers():
@@ -605,13 +612,14 @@ def getUsers():
     return users, lastUser
 
 def updateUsers(user, users):
-    if user not in users:
+    if user not in users and user is not None:
         users.append(user)
     fPath = os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.flashcards', 'users')
     uFile = open(fPath, 'w')
     for u in users:
         uFile.write('%s\n' % u)
-    uFile.write(user)
+    if user is not None:
+        uFile.write(user)
     uFile.close()
 
 def copyText(text):
@@ -649,37 +657,57 @@ def pronunciationHelp(text):
     pronunciationHelpWin.close()
     return quit
 
-def userProfile(user, users):
+def cardScoreExtema(cards, user, mode='Best', N=5):
+    weights, uData = readWeights(cards, user)
+    orderedWeights = {key: value for key, value in sorted(weights.items(), key=lambda item: item[1])}
+    list = []
+    for hanzi in orderedWeights.keys():
+        list.append([hanzi, weights[hanzi]])
+    if mode == 'Best':
+        list = list[:N]
+    elif mode == 'Worst':
+        list = list[-N:]
+    else:
+        raise RuntimeError
+
+    return list
+
+def userProfile(cards, user, users):
     quit = False
+    userChange = user
     if user is None:
         sg.popup('Please select a user profile', font='Arial 12', title='抽认卡: ...')
-        return None, quit
-    statCLength = 215
-    N = 0
+        return userChange, quit
+    N = 10
+    statCLength = math.ceil(43*N/2)
     widest = 30
-    bestCards = [[sg.Text('Best Cards', font='Arial 12')]]
-    worstCards = [[sg.Text('Worst Cards', font='Arial 12')]]
-    for hanzi in ['你好','再见','世界语','马克','王珊']:
-        line = '%s\t%d' % (hanzi, N)
-        width = math.ceil(len(line)*2.6)
-        bestCards.append([sg.Text(line, font='KaiTi 20', background_color='white', text_color='black', size=(width,1))])
-        worstCards.append([sg.Text(line, font='KaiTi 20', background_color='white', text_color='black', size=(width,1))])
+    bestCards = [[sg.Text('Best Cards %d:' % N, background_color='white', text_color='black', font='Arial 12')]]
+    worstCards = [[sg.Text('Worst Cards %d:' % N, background_color='white', text_color='black', font='Arial 12')]]
+    bestList = cardScoreExtema(cards, user, mode='Best', N=N)
+    worstList = cardScoreExtema(cards, user, mode='Worst', N=N)
+    for card in bestList+worstList:
+        width = math.ceil(len('%s  %d' % (card[0], card[1]))*2.6)
         if width > widest:
             widest = width
-    best = sg.Column(bestCards, background_color='white', size=(widest*6, statCLength), scrollable=False, vertical_scroll_only=True)
-    worst = sg.Column(worstCards, background_color='white', size=(widest*6, statCLength), scrollable=False, vertical_scroll_only=True)
+    for card in bestList:
+        bestCards.append([sg.Text('%s  %d' % (card[0], card[1]), font='KaiTi 20', background_color='white', text_color='black', size=(width,1))])
+    for card in worstList:
+        worstCards.append([sg.Text('%s  %d' % (card[0], card[1]), font='KaiTi 20', background_color='white', text_color='black', size=(width,1))])
+    best = sg.Column(bestCards, background_color='white', size=(widest*6, statCLength), scrollable=True, vertical_scroll_only=True)
+    worst = sg.Column(worstCards, background_color='white', size=(widest*6, statCLength), scrollable=True, vertical_scroll_only=True)
+    weights, uData = readWeights(cards, user)
     statsLayout = [
-                   [sg.Text('Total cards studied: %d' % N, font='Arial 12')],
-                   [sg.Text('汉语 ➡️ En: %d' % N, font='Arial 12'), sg.Text('En ➡️ 汉语: %d' % N, font='Arial 12')],
+                   [sg.Text('Total cards studied: %d' % (uData['ZH->EN']+uData['EN->ZH']), font='Arial 12')],
+                   [sg.Text('汉语 ➡️ En: %d' % uData['ZH->EN'], font='Arial 12'), sg.Text('En ➡️ 汉语: %d' % uData['EN->ZH'], font='Arial 12')],
                    [best, sg.VSeperator(), worst]
                   ]
     settingsLayout = [[sg.Button('Rename profile'), sg.Button('Delete profile')]]
     layout = [
-              [sg.Text('User: %s' % user, font='Arial 24')],#, text_color='black', background_color='white')],
+              [sg.Text('User: %s' % user, font='Arial 24', key='_USER_', justification='center', size=(22,1))],#, text_color='black', background_color='white')],
               [sg.TabGroup([[sg.Tab('Statistics', statsLayout), sg.Tab('Settings', settingsLayout) ]])],
               [sg.Button('Back')]
              ]
-    userProfileWin = sg.Window('抽认卡 — User Profile: %s' % user, layout, element_justification='c', finalize=True)
+    userProfileWin = sg.Window('抽认卡 — User Profile', layout, element_justification='c', finalize=True)
     while True:
         event, values = userProfileWin.read()
         if event in [sg.WIN_CLOSED, 'Back']:
@@ -687,11 +715,36 @@ def userProfile(user, users):
                 quit = True
             break
         elif event == 'Rename profile':
-            pass
+            userChange = sg.popup_get_text('Enter new name for profile "%s":' % user, font='Arial 12')
+            if userChange not in users:
+                weights, uData = readWeights(cards, user)
+                writeWeights(userChange, weights, uData)
+                path = os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.flashcards')
+                if os.path.exists(os.path.join(path, '%s.profile' % user)):
+                    os.remove(os.path.join(path, '%s.profile' % user))
+                for u in range(len(users)):
+                    if users[u] == user:
+                        users.pop(u)
+                        break
+                user = userChange
+                updateUsers(user, users)
+                userProfileWin['_USER_'].Update('User: %s' % user)
+            else:
+                sg.popup('Sorry, the username "%s" already exists.' % userChange, font='Arial 12')
         elif event == 'Delete profile':
-            pass
+            if 'Yes' == sg.popup('Are you sure you want to delete your profile, %s?' % user, title='抽认卡: ...？', custom_text=('Yes', 'No'), font='Arial 12'):
+                path = os.path.join(os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.flashcards'), '%s.profile' % user)
+                if os.path.exists(path):
+                    os.remove(path)
+            for u in range(len(users)-1, -1, -1):
+                if users[u] == user:
+                    users.pop(u)
+            user = None
+            updateUsers(user, users)
+            userChange = True
+            break
     userProfileWin.close()
-    return None, quit
+    return userChange, quit
 
 def mainGUI(cards):
     quit = False
@@ -754,7 +807,13 @@ def mainGUI(cards):
                     mainWin.un_hide()
         elif event == 'Profile':
             mainWin.hide()
-            _, quit = userProfile(user, users)
+            userChange, quit = userProfile(cards, user, users)
+            if userChange is True:
+                mainWin.FindElement('_USER_').Update('', values=['']+users+['{New user}'])
+                user = None
+            elif userChange != user:
+                user = userChange
+                mainWin.FindElement('_USER_').Update(user, values=users+['{New user}'])
             if quit:
                 break
             mainWin.un_hide()
@@ -762,12 +821,14 @@ def mainGUI(cards):
             pass
         elif event == '_USER_':
             userInput = values['_USER_']
+            if userInput == '':
+                userInput = None
             if userInput == '{New user}':
                 userInput = sg.popup_get_text('Enter new username:', font='Arial 12')
                 if userInput is not None:
                     user = userInput
                     updateUsers(user, users)
-                mainWin.FindElement('_USER_').Update(user, values=users+['{New user}'])#, default_value=user)
+                mainWin.FindElement('_USER_').Update(user, values=users+['{New user}'])
             else:
                 user = userInput
                 updateUsers(user, users)
