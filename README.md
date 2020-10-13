@@ -36,6 +36,7 @@ where each column is separated by a tab. Additionally, hints can be placed in an
 
 ## To do
 
+- [ ] Add comments to code
 - [ ] Add more flashcards
 - [ ] Test quality of interface
 - [ ] Bug hunting
