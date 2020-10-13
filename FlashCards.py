@@ -700,9 +700,9 @@ def cardScoreExtema(cards, user, mode='Best', N=5):
     list = []
     for hanzi in orderedWeights.keys():
         list.append([hanzi, weights[hanzi]])
-    if mode == 'Best':
+    if mode == 'Worst':
         list = list[:N]
-    elif mode == 'Worst':
+    elif mode == 'Best':
         list = list[-N:]
         list.reverse()
     else:
