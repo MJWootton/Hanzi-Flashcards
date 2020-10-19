@@ -34,10 +34,11 @@ New flash cards can be made in the “Edit Cards” menu. Click “New card” (
 
 where each column is separated by a tab. Additionally, hints can be placed in an optional fourth column.
 
-## To do
+## To Do
 
 - [ ] Add comments to code
 - [ ] Add more flashcards
+- [ ] Add flashcard categories
 - [ ] Test quality of interface
 - [ ] Bug hunting
 
