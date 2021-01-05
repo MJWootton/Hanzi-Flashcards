@@ -874,6 +874,8 @@ def mainGUI(cards):
                 updateUsers(user, users)
 
 def main():
+    if not os.path.isdir(os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.flashcards')):
+        os.mkdir(os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.flashcards'))
     mainGUI(cards = readCards())
 
 if __name__ == '__main__':
