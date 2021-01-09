@@ -1,3 +1,4 @@
+# First party modules
 import os
 import sys
 import shutil
@@ -8,23 +9,25 @@ import glob
 import collections
 import math
 import platform
-
+# Third party modules
 import PySimpleGUI as sg
 import xpinyin
 import gtts
 from playsound import playsound
 from googletrans import Translator as gt
 from tkinter import Tk
-# import pyperclip
 
+# Test if speaker character is availible
 try:
     sound = '🕪 Read 🔊'
     sg.popup(sound, auto_close=True, auto_close_duration=0, line_width=0, no_titlebar=True, grab_anywhere=True)
 except:# _tkinter.TclError:
     sound = 'Read'
 
+# Records if changes have been made to card list
 changes = False
 
+# Dictionary of all vowel groups and their tones
 toneDict = collections.OrderedDict()
 toneDict['ia'] = ['iā', 'iá', 'iǎ', 'ià']
 toneDict['ua'] = ['uā', 'uá', 'uǎ', 'uà']
@@ -56,9 +59,17 @@ toneDict['v'] = toneDict['ü']
 tones = [['a', 'āáǎà'], ['e', 'ēéěè'], ['i','īíǐì'], ['o', 'ōóǒò'], ['u', 'ūúǔù'], ['ü', 'ǖǘǚǜ']]
 
 def version():
+    """
+    Returns version number
+
+    """
     return '1-0'
 
 def help():
+    """
+    Displays help text
+
+    """
     title = '汉字 Flashcards'
     subtitle = 'Version %s\n© Mark Wootton 2020\n' % version()
     #         ################################################################################
@@ -93,24 +104,57 @@ def help():
     helpWin.close()
 
 def tts(text):
+    """
+    Gets speech to text via gTTS API, saves it to temporary *.mp3 file to be played
+
+    """
     try:
+        # Create temporary directory and file path
         tempPath = tempfile.mkdtemp()
         tempFile = os.path.join(tempPath, "tts.mp3")
+        # Get speech to text object and save to file
         tts = gtts.gTTS(text, lang='zh-cn')
         tts.save(tempFile)
+        # Play temporary sound file
         playsound(tempFile)
+        # Purge temporary direction
         shutil.rmtree(tempPath)
     except:
+        # Pop-up error if TTS unavailible
         sg.popup('Error: Input could not be read. Possible causes:\n• Invalid input\n• No access to Google Translate API', title='抽认卡: Error', font='Arial 12')
 
 def getPinyin(text):
+    """
+    Get pinyin for a string of hanzi from Google Translate API, or xpinyin as a
+    fall back option, as the latter does not account for contexual changes in a
+    character's pronunciation. The result from xpinyin is also used to verify
+    the gaps between characters as Google Translate grounds some together.
+
+    Parameters
+    ----------
+    text : string
+        The text containing the hanzi to convert
+
+    Returns
+    ----------
+    result : string
+        A string containing pinyin corresponding to input hanzi
+    source : string
+        A record of the source of the returned pinyin
+    quality : string
+        A record of how the result was achieved
+
+    """
     try:
-    # if True:
+        # Get xpinyin version for comparision of spaces
         xp = xpinyin.Pinyin().get_pinyin(text, ' ', tone_marks='marks')
+        # Get pinyin from Google Translate
         gtr = gt().translate(text, dest="zh-cn").pronunciation.lower()
+        # If xpinyin and Google Translate outputs match, return result
         if xp.strip(' ') == gtr.strip(' '):
             return xp, 'xpinyin,Google Translate', 'good'
         else:
+            # Compare xpinyin and Google Translate to insert spaces between each character's pinyin
             found = []
             sxp = xp.split(' ')
             for x in range(len(sxp)):
@@ -141,20 +185,51 @@ def getPinyin(text):
             result = result.strip('   ').strip('  ')
             return result, 'xpinyin,Google Translate', 'reconstructed'
     except:
+        # If Google Translate API is unavailible, use xpinyin
         return xpinyin.Pinyin().get_pinyin(text, ' ', tone_marks='marks'), 'xpinyin', 'no internet'
 
 def getMeaning(text):
+    """
+    Query Google Translate API for meaning of Chinese text in English
+
+    Parameters
+    ----------
+    text : string
+        Text to translate
+
+    Return
+    ----------
+    result : string
+        Translated text
+
+    """
     return gt().translate(text, dest="en").text.lower(), 'Google Translate'
 
 def pinyinNumToMark(text):
+    """
+    Converts pinyin with tone number to pinyin with diacritic tone marks
+
+    Parameters
+    ----------
+    text : string
+        Text to convert
+
+    Returns
+    ----------
+    result : string
+        Converted text
+    """
+    # Split by character
     sText = text.lower().split(' ')
     result = ''
     if len(text):
         for s in sText:
+            # Get tone from final character if number
             if s[-1].isdigit():
                 tone = int(s[-1])
                 s = s[:-1]
                 if tone < 5:
+                    # Make substituion using toneDict
                     for r in toneDict.keys():
                         m = s.replace(r, toneDict[r][tone-1])
                         if m != s:
@@ -166,6 +241,20 @@ def pinyinNumToMark(text):
         return result
 
 def removeTone(text):
+    """
+    Strips tone marks from pinyin
+
+    Parameters
+    ----------
+    text : string
+        Text containing pinyin for tone mark removal
+
+    Returns
+    ----------
+    result : string
+        Pinyin without tone marks
+
+    """
     result = text.lower()
     for letter in tones:
         noTone = letter[0]
@@ -174,20 +263,54 @@ def removeTone(text):
     return result
 
 def checkIfHanzi(text):
+    """
+    Checks if text is comprised of hanzi
+
+    Parameters
+    ----------
+    text : string
+        Text to check
+
+    Returns
+    ----------
+    result : boolean
+        True for hanzi, False otherwise
+    """
     return (0 < len(re.findall(r'[\u4e00-\u9fff]+', text)))
 
 def readFile(fPath, cards, overwrite=True):
+    """
+    Reads file containing flashcards and adds them to the deck
+
+    Parameters
+    ----------
+    fPath : string
+        Directory of file to read
+    cards : OrderedDict
+        Collection of existing flashcards
+    overwrite : boolean
+        If True, existing cards for a given hanzi are overwriten if new version
+        is found in file
+
+    """
+    # Open file
     file = open(fPath, 'r', encoding="utf8")
     for line in file:
+        # Purge unhelpful character
         line = line.strip('\ufeff').strip('\n')
+        # Ignore comments
         if line.startswith('//') or line.startswith('#') or not len(line):
             continue
         spline = line
+        # Remove clusters of whitespace
         for i in range(10, 1, -1):
             spline = spline.replace(' '*i, '\t')
+        # Split by column
         spline = spline.split('\t')
+        # Don't overwrite duplicate card if overwrite is False
         if spline[0] in cards and not overwrite:
             continue
+        # Record cars in deck
         if checkIfHanzi(spline[0]) and len(spline) >= 3:
             cards[spline[0]] = [pinyinNumToMark(spline[1]), spline[2]]
             if len(spline) >= 4:
@@ -197,7 +320,15 @@ def readFile(fPath, cards, overwrite=True):
     file.close()
 
 def readCards():
-    # cards = {}
+    """
+    Get cards from *.txt files in .flashcards
+
+    Returns
+    ----------
+    cards : OrderedDict
+        Deck of flashcards
+
+    """
     cards = collections.OrderedDict()
     path = os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.flashcards')
     # path = os.path.join(os.getcwd(), '.flashcards')
@@ -213,6 +344,15 @@ def readCards():
     return cards
 
 def writeCards(cards):
+    """
+    Saves flashcards to file
+
+    Parameters
+    ----------
+    cards : OrderedDict
+        Deck of flashcards to save
+
+    """
     # path = os.path.join(os.getcwd(), '.flashcards')
     fPath = os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.flashcards')
     if not os.path.exists(fPath):
@@ -228,6 +368,24 @@ def writeCards(cards):
     file.close()
 
 def readWeights(cards, user):
+    """
+    Get weightings for card selection based on prior user performance
+
+    Parameters
+    ----------
+    cards : OrderedDict
+        Deck of Flashcards
+    user : string
+        User profile in current session
+
+    Returns
+    ----------
+    weights : OrderedDict
+        Weights for flashcard selection
+    uData : dictionary
+        English to Chinese and Chinese to English specific performance
+
+    """
     userData = False
     cardData = False
     weights = collections.OrderedDict()
@@ -259,6 +417,19 @@ def readWeights(cards, user):
     return weights, uData
 
 def writeWeights(user, weights, uData):
+    """
+    Save updated card selection weights to user's file
+
+    Parameters
+    ----------
+    user : string
+        User profile in current session
+    weights : OrderedDict
+        Card selection weightings based on user performance
+    uData : dictionary
+        English to Chinese and Chinese to English specific performance
+
+    """
     if user is None or weights is None:
         return
     fPath = os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.flashcards', '%s.profile' % user)
@@ -271,6 +442,17 @@ def writeWeights(user, weights, uData):
     file.close()
 
 def selectCard(cards, weights=None):
+    """
+    Select flashcard based on spaced repeatition weightings
+
+    Parameters
+    ----------
+    cards : OrderedDict
+        Deck of flashcards
+    weights : OrderedDict
+        Card selection weights based on user performance
+
+    """
     while True:
         table = []
         max = 0.0
@@ -295,9 +477,28 @@ def selectCard(cards, weights=None):
     #     if count > selection:
     #         return hanzi
 
+    # If you reach this line, no card could be selected and something has gone wrong
     raise RuntimeError
 
 def editHanzi(cards, hanzi=None):
+    """
+    Add new hanzi flashcard or make changes to existing entry
+
+    Parameters
+    ----------
+    cards : OrderedDict
+        Existing deck of flashcards
+    hanzi : string
+        Hanzi to create or edit card
+
+    Returns
+    ----------
+    quit : boolean
+        True if user closes application window
+    edits : boolean
+        True if changes have been made to the deck
+
+    """
     global changes
     edits = False
     quit = False
