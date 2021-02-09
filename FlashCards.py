@@ -330,7 +330,7 @@ def readCards():
 
     """
     cards = collections.OrderedDict()
-    path = os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.flashcards')
+    path = os.path.join(os.getcwd(), '.flashcards')
     # path = os.path.join(os.getcwd(), '.flashcards')
     if os.path.exists(path):
         for fPath in glob.glob1(path, '*.txt'):
@@ -354,7 +354,7 @@ def writeCards(cards):
 
     """
     # path = os.path.join(os.getcwd(), '.flashcards')
-    fPath = os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.flashcards')
+    fPath = os.path.join(os.getcwd(), '.flashcards')
     if not os.path.exists(fPath):
         os.mkdir(fPath)
     fPath = os.path.join(fPath, 'flashcards.txt')
@@ -390,7 +390,7 @@ def readWeights(cards, user):
     cardData = False
     weights = collections.OrderedDict()
     uData = {'EN->ZH' : 0, 'ZH->EN' : 0}
-    fPath = os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.flashcards', '%s.profile' % user)
+    fPath = os.path.join(os.getcwd(), '.flashcards', '%s.profile' % user)
     if os.path.exists(fPath):
         file = open(fPath, 'r', encoding="utf8")
         for line in file:
@@ -432,7 +432,7 @@ def writeWeights(user, weights, uData):
     """
     if user is None or weights is None:
         return
-    fPath = os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.flashcards', '%s.profile' % user)
+    fPath = os.path.join(os.getcwd(), '.flashcards', '%s.profile' % user)
     file = open(fPath, 'w', encoding="utf8")
     file.write('~UserData\n%s\n' % user)
     file.write('EN->ZH\t%d\nZH->EN\t%d\n' % (uData['EN->ZH'], uData['ZH->EN']))
@@ -833,7 +833,7 @@ def studyMeaning(cards, user):
 def getUsers():
     users = []
     lastUser = None
-    path = os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.flashcards')
+    path = os.path.join(os.getcwd(), '.flashcards')
     fPath = os.path.join(path, 'users')
     if os.path.exists(fPath):
         uFile = open(fPath, 'r', encoding="utf8")
@@ -852,7 +852,7 @@ def getUsers():
 def updateUsers(user, users):
     if user not in users and user is not None:
         users.append(user)
-    fPath = os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.flashcards', 'users')
+    fPath = os.path.join(os.getcwd(), '.flashcards', 'users')
     uFile = open(fPath, 'w', encoding="utf8")
     for u in users:
         uFile.write('%s\n' % u)
@@ -958,7 +958,7 @@ def userProfile(cards, user, users):
             if userChange not in users:
                 weights, uData = readWeights(cards, user)
                 writeWeights(userChange, weights, uData)
-                path = os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.flashcards')
+                path = os.path.join(os.getcwd(), '.flashcards')
                 if os.path.exists(os.path.join(path, '%s.profile' % user)):
                     os.remove(os.path.join(path, '%s.profile' % user))
                 for u in range(len(users)):
@@ -972,7 +972,7 @@ def userProfile(cards, user, users):
                 sg.popup('Sorry, the username "%s" already exists.' % userChange, title='抽认卡', font='Arial 12')
         elif event == 'Delete profile':
             if 'Yes' == sg.popup('Are you sure you want to delete your profile, %s?' % user, title='抽认卡', custom_text=('Yes', 'No'), font='Arial 12'):
-                path = os.path.join(os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.flashcards'), '%s.profile' % user)
+                path = os.path.join(os.path.join(os.getcwd(), '.flashcards'), '%s.profile' % user)
                 if os.path.exists(path):
                     os.remove(path)
             for u in range(len(users)-1, -1, -1):
@@ -988,9 +988,9 @@ def userProfile(cards, user, users):
 def mainGUI(cards):
     quit = False
     if platform.system() == 'Windows':
-        sg.SetGlobalIcon(os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.icon', 'icon.ico'))
+        sg.SetGlobalIcon(os.path.join(os.getcwd(), '.icon', 'icon.ico'))
     else:
-        sg.SetGlobalIcon(os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.icon', 'icon.png'))
+        sg.SetGlobalIcon(os.path.join(os.getcwd(), '.icon', 'icon.png'))
     sg.theme('Dark Red 1')
     bgc = sg.theme_background_color()
     # sg.theme_text_element_background_color(color='white')
@@ -1075,8 +1075,11 @@ def mainGUI(cards):
                 updateUsers(user, users)
 
 def main():
-    if not os.path.isdir(os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.flashcards')):
-        os.mkdir(os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], '.flashcards'))
+    if len(os.path.dirname(sys.argv[0])):
+        os.chdir(os.path.dirname(sys.argv[0]))
+    if not os.path.isdir(os.path.join(os.getcwd(), '.flashcards')):
+        os.mkdir(os.path.join(os.getcwd(), '.flashcards'))
+    sg.popup(os.getcwd())
     mainGUI(cards = readCards())
 
 if __name__ == '__main__':
