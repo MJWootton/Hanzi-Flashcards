@@ -1079,7 +1079,6 @@ def main():
         os.chdir(os.path.dirname(sys.argv[0]))
     if not os.path.isdir(os.path.join(os.getcwd(), '.flashcards')):
         os.mkdir(os.path.join(os.getcwd(), '.flashcards'))
-    sg.popup(os.getcwd())
     mainGUI(cards = readCards())
 
 if __name__ == '__main__':
