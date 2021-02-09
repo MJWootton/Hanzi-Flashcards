@@ -987,10 +987,10 @@ def userProfile(cards, user, users):
 
 def mainGUI(cards):
     quit = False
-    if platform.system() == 'Windows':
-        sg.SetGlobalIcon(os.path.join(os.getcwd(), '.icon', 'icon.ico'))
-    else:
-        sg.SetGlobalIcon(os.path.join(os.getcwd(), '.icon', 'icon.png'))
+    # if platform.system() == 'Windows':
+    #     sg.SetGlobalIcon(os.path.join(os.getcwd(), '.icon', 'icon.ico'))
+    # else:
+    #     sg.SetGlobalIcon(os.path.join(os.getcwd(), '.icon', 'icon.png'))
     sg.theme('Dark Red 1')
     bgc = sg.theme_background_color()
     # sg.theme_text_element_background_color(color='white')
@@ -1079,6 +1079,10 @@ def main():
         os.chdir(os.path.dirname(sys.argv[0]))
     if not os.path.isdir(os.path.join(os.getcwd(), '.flashcards')):
         os.mkdir(os.path.join(os.getcwd(), '.flashcards'))
+    if platform.system() == 'Windows':
+        sg.SetGlobalIcon(os.path.join(os.getcwd(), '.icon', 'icon.ico'))
+    else:
+        sg.SetGlobalIcon(os.path.join(os.getcwd(), '.icon', 'icon.png'))
     mainGUI(cards = readCards())
 
 if __name__ == '__main__':
