@@ -9,6 +9,7 @@ import glob
 import collections
 import math
 import platform
+from pathlib import Path
 # Third party modules
 import PySimpleGUI as sg
 import xpinyin
@@ -1075,8 +1076,7 @@ def mainGUI(cards):
                 updateUsers(user, users)
 
 def main():
-    if len(os.path.dirname(sys.argv[0])):
-        os.chdir(os.path.dirname(sys.argv[0]))
+    os.chdir(Path(__file__).parent)
     if not os.path.isdir(os.path.join(os.getcwd(), '.flashcards')):
         os.mkdir(os.path.join(os.getcwd(), '.flashcards'))
     if platform.system() == 'Windows':
