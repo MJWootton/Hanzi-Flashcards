@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # First party modules
 import os
 import sys
@@ -295,7 +296,7 @@ def readFile(fPath, cards, overwrite=True):
 
     """
     # Open file
-    file = open(fPath, 'r', encoding="utf8")
+    file = open(fPath, 'r', encoding='utf8')
     for line in file:
         # Purge unhelpful character
         line = line.strip('\ufeff').strip('\n')
@@ -311,7 +312,7 @@ def readFile(fPath, cards, overwrite=True):
         # Don't overwrite duplicate card if overwrite is False
         if spline[0] in cards and not overwrite:
             continue
-        # Record cars in deck
+        # Record cards in deck
         if checkIfHanzi(spline[0]) and len(spline) >= 3:
             cards[spline[0]] = [pinyinNumToMark(spline[1]), spline[2]]
             if len(spline) >= 4:
@@ -360,7 +361,7 @@ def writeCards(cards):
         os.mkdir(fPath)
     fPath = os.path.join(fPath, 'flashcards.txt')
 
-    file = open(fPath, 'w', encoding="utf8")
+    file = open(fPath, 'w', encoding='utf8')
     for hanzi in cards.keys():
         note = ''
         if cards[hanzi][2] is not None:
@@ -393,7 +394,7 @@ def readWeights(cards, user):
     uData = {'EN->ZH' : 0, 'ZH->EN' : 0}
     fPath = os.path.join(os.getcwd(), '.flashcards', '%s.profile' % user)
     if os.path.exists(fPath):
-        file = open(fPath, 'r', encoding="utf8")
+        file = open(fPath, 'r', encoding='utf8')
         for line in file:
             spline = line.strip('\n').split('\t')
             if spline[0] == '~UserData':
@@ -434,7 +435,7 @@ def writeWeights(user, weights, uData):
     if user is None or weights is None:
         return
     fPath = os.path.join(os.getcwd(), '.flashcards', '%s.profile' % user)
-    file = open(fPath, 'w', encoding="utf8")
+    file = open(fPath, 'w', encoding='utf8')
     file.write('~UserData\n%s\n' % user)
     file.write('EN->ZH\t%d\nZH->EN\t%d\n' % (uData['EN->ZH'], uData['ZH->EN']))
     file.write('~CardData\n')
@@ -630,9 +631,10 @@ def editCards(cards):
             if reopen:
                 break
         elif event == '_IMPORT_':
-            readFile(values['_IMPORT_'], cards, overwrite=('Use new' == sg.popup('How do you want to handle cards found in both existing and new lists?', title='抽认卡', custom_text=('Keep old', 'Use new'), font='Arial 12')))
+            if len(values['_IMPORT_']):
+                readFile(values['_IMPORT_'], cards, overwrite=('Use new' == sg.popup('How do you want to handle cards found in both existing and new lists?', title='抽认卡', custom_text=('Keep old', 'Use new'), font='Arial 12')))
+                changes = True
             reopen = True
-            changes = True
             break
     editWin.close()
     return quit, reopen, cards
@@ -837,7 +839,7 @@ def getUsers():
     path = os.path.join(os.getcwd(), '.flashcards')
     fPath = os.path.join(path, 'users')
     if os.path.exists(fPath):
-        uFile = open(fPath, 'r', encoding="utf8")
+        uFile = open(fPath, 'r', encoding='utf8')
         for line in uFile:
             users.append(line.strip('\n'))
             if not len(users[-1]):
@@ -854,7 +856,7 @@ def updateUsers(user, users):
     if user not in users and user is not None:
         users.append(user)
     fPath = os.path.join(os.getcwd(), '.flashcards', 'users')
-    uFile = open(fPath, 'w', encoding="utf8")
+    uFile = open(fPath, 'w', encoding='utf8')
     for u in users:
         uFile.write('%s\n' % u)
     if user is not None:
