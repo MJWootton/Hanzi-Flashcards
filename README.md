@@ -3,11 +3,13 @@
 Version 1-0  
 © Mark Wootton 2020
 
+**Note:** Issues relating to Google Translate API have left auto-translation and text-to-speech features unavailable until a new solution can be implemented.
+
 ## Dependencies
 
 * [Python 3](https://www.python.org)
   * [tkinter](https://docs.python.org/3/library/tkinter.html) (often pre-installed with Python)
-* The follwing third-party libaries
+* The following third-party libraries
   * [PySimpleGUI](https://pysimplegui.readthedocs.io/en/latest/)
   * [playsound](https://pypi.org/project/playsound)
   * [xpinyin](https://pypi.org/project/xpinyin)
