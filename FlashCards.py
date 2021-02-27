@@ -295,26 +295,46 @@ def readFile(fPath, cards, overwrite=True):
         is found in file
 
     """
+    auto = None
     # Open file
     file = open(fPath, 'r', encoding='utf8')
     for line in file:
         # Purge unhelpful character
-        line = line.strip('\ufeff').strip('\n')
+        spline = line.strip('\ufeff').strip('\n')
         # Ignore comments
-        if line.startswith('//') or line.startswith('#') or not len(line):
+        if spline.startswith('//') or spline.startswith('#') or not len(spline):
             continue
-        spline = line
         # Remove clusters of whitespace
         for i in range(10, 1, -1):
             spline = spline.replace(' '*i, '\t')
         # Split by column
         spline = spline.split('\t')
+        # Add translation request note to cards without meaning given
+        if len(spline) == 2:
+            if checkIfHanzi(spline[0]) and not checkIfHanzi(spline[1]):
+                spline.append('?')
         # Don't overwrite duplicate card if overwrite is False
         if spline[0] in cards and not overwrite:
             continue
         # Record cards in deck
         if checkIfHanzi(spline[0]) and len(spline) >= 3:
+            # Correct spacing if number tones have been used
+            if any(char.isdigit() for char in spline[1]):
+                for i in range(len(spline[1])-2,-1,-1):
+                    if spline[1][i].isdigit():
+                        spline[1] = spline[1][:i+1]+' '+spline[1][i+1:]
+                spline[1] = spline[1].replace('  ', ' ')
+
             cards[spline[0]] = [pinyinNumToMark(spline[1]), spline[2]]
+            if cards[spline[0]][1] == '?':
+                if auto is None:
+                    if 'Yes' == sg.popup('Some cards are missing a definition. Would you like to use automatic translation? This may take some time.', title='抽认卡', custom_text=('Yes', 'No'), font='Arial 12'):
+                        auto = True
+                    else:
+                        auto = False
+                if auto:
+                    cards[spline[0]][1] = getMeaning(spline[0])[0]
+                    print(spline[0],cards[spline[0]][1])
             if len(spline) >= 4:
                 cards[spline[0]].append(spline[3])
             else:
@@ -591,7 +611,7 @@ def editCards(cards):
     layout = [
               [sg.Text("Existing cards:", font='Arial 24')], #size=(1000, 500)
               [sg.Column(cardList, background_color='white', size=(widest*6, 500), scrollable=True, vertical_scroll_only=True)],
-              [sg.Button('New card', bind_return_key=True), sg.Input(key='_IMPORT_', enable_events=True, visible=False), sg.FileBrowse('Import', target='_IMPORT_', file_types=(('TXT', '.txt'), ('All files', '*')))],
+              [sg.Button('New card', bind_return_key=True), sg.Input(key='_IMPORT_', enable_events=True, visible=False), sg.FileBrowse('Import', target='_IMPORT_', initial_folder=os.getcwd(), file_types=(('TXT', '.txt'), ('All files', '*')))],
               [sg.Button('Save & exit'), sg.Button('Discard changes')]
              ]
     editWin = sg.Window('抽认卡', layout, element_justification='c', finalize=True)
