@@ -280,7 +280,7 @@ def checkIfHanzi(text):
     """
     return (0 < len(re.findall(r'[\u4e00-\u9fff]+', text)))
 
-def readFile(fPath, cards, overwrite=True):
+def readFile(fPath, cards, overwrite=True, auto = False):
     """
     Reads file containing flashcards and adds them to the deck
 
@@ -295,7 +295,6 @@ def readFile(fPath, cards, overwrite=True):
         is found in file
 
     """
-    auto = None
     # Open file
     file = open(fPath, 'r', encoding='utf8')
     for line in file:
@@ -652,7 +651,7 @@ def editCards(cards):
                 break
         elif event == '_IMPORT_':
             if len(values['_IMPORT_']):
-                readFile(values['_IMPORT_'], cards, overwrite=('Use new' == sg.popup('How do you want to handle cards found in both existing and new lists?', title='抽认卡', custom_text=('Keep old', 'Use new'), font='Arial 12')))
+                readFile(values['_IMPORT_'], cards, overwrite=('Use new' == sg.popup('How do you want to handle cards found in both existing and new lists?', title='抽认卡', custom_text=('Keep old', 'Use new'), font='Arial 12')), auto=None)
                 changes = True
             reopen = True
             break
