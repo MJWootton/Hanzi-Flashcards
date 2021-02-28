@@ -3,8 +3,6 @@
 Version 1-0  
 © Mark Wootton 2020
 
-**Note:** Issues relating to Google Translate API have left auto-translation and text-to-speech features unavailable until a new solution can be implemented.
-
 ## Dependencies
 
 * [Python 3](https://www.python.org)
@@ -16,6 +14,8 @@ Version 1-0
   * [gTTS](https://pypi.org/project/gTTS)
   * [googletrans](https://pypi.org/project/googletrans) (note: until issues in the release version are fixed, you may need to use alpha build `3.1.0a0`)
 * Installation of the font [KaiTi](https://fontzone.net/font-download/kaiti) is also recommended, but not essential.
+
+**Note:** The automatic generation of definitions and text-to-speak features are dependant on external libraries which interact with Google APIs. As such, these features are prone to breaking due to upstream changes. If you encounter a problem, try updating both your libraries and local clone of the this repository.
 
 Additionally, a Chinese language input method (normally available as part of most operating systems) must be enabled to use the program. Tones can be marked on pinyin input using either diacritics or the [numerical system](https://resources.allsetlearning.com/pronwiki/images/8/85/4-Tones_standard_cropped.png).
 
