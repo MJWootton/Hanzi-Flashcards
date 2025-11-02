@@ -8,7 +8,7 @@ Version 1-0
 * [Python 3](https://www.python.org)
   * [tkinter](https://docs.python.org/3/library/tkinter.html) (often pre-installed with Python)
 * The following third-party libraries
-  * [PySimpleGUI](https://pysimplegui.readthedocs.io/en/latest/)
+  * [PySimpleGUI4](https://pypi.org/project/PySimpleGUI4/)
   * [playsound](https://pypi.org/project/playsound)
   * [xpinyin](https://pypi.org/project/xpinyin)
   * [gTTS](https://pypi.org/project/gTTS)

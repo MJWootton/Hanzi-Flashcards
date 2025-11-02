@@ -12,7 +12,7 @@ import math
 import platform
 from pathlib import Path
 # Third party modules
-import PySimpleGUI as sg
+import PySimpleGUI4 as sg
 import xpinyin
 import gtts
 from playsound import playsound
